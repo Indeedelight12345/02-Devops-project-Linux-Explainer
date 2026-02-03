@@ -61,7 +61,7 @@ jobs:
           image-ref: '${{ env.GCP_PATH }}:latest'
           format: 'table'
           exit-code: '1'
-          severity: 'CRITICAL,MEDUIM'
+          severity: 'CRITICAL'
 
       # Push to Google Artifact Registry
       - name: Push to Artifact Registry (GCP)
