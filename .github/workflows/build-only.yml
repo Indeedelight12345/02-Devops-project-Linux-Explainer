@@ -8,49 +8,68 @@ on:
 jobs:
   build-scan-push:
     runs-on: ubuntu-latest
+    
+
     env:
-      
-      GCP_IMAGE_BASE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repository/my-app
-      DOCKER_IMAGE_BASE: ${{ secrets.DOCKER_USERNAME }}/linuxapp-explainer
+      GCP_REGISTRY: us-central1-docker.pkg.dev
+      GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REPO: my-repository
+      IMAGE_NAME: my-app
+      DOCKERHUB_REPO: ${{ secrets.DOCKER_USERNAME }}/linuxapp-explainer
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Login to Google Cloud
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
+      # Login to Docker Hub
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3 # Updated to v3
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Configure Docker for GCP
       - name: Configure GCP Docker
-        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker ${{ env.GCP_REGISTRY }} --quiet
 
+      # Build the image once and tag it for both registries
       - name: Build Docker image
         run: |
-          # Build with both tags locally
-          docker build -t ${{ env.GCP_IMAGE_BASE }}:latest \
-                       -t ${{ env.DOCKER_IMAGE_BASE }}:latest \
-                       -t ${{ env.GCP_IMAGE_BASE }}:${{ github.sha }} .
+          # Construct the full GCP path
+          GCP_FULL_PATH="${{ env.GCP_REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_REPO }}/${{ env.IMAGE_NAME }}"
+          
+          echo "Building for GCP: $GCP_FULL_PATH"
+          echo "Building for DockerHub: ${{ env.DOCKERHUB_REPO }}"
 
+          docker build -t "$GCP_FULL_PATH:latest" \
+                       -t "$GCP_FULL_PATH:${{ github.sha }}" \
+                       -t "${{ env.DOCKERHUB_REPO }}:latest" .
+          
+          # Save the path for following steps
+          echo "GCP_PATH=$GCP_FULL_PATH" >> $GITHUB_ENV
+
+      # Security Scan
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.GCP_IMAGE_BASE }}:latest'
+          image-ref: '${{ env.GCP_PATH }}:latest'
           format: 'table'
           exit-code: '1'
-          severity: 'CRITICAL,MEDIUM'
+          severity: 'CRITICAL,MEDUIM'
 
+      # Push to Google Artifact Registry
       - name: Push to Artifact Registry (GCP)
         run: |
-          docker push ${{ env.GCP_IMAGE_BASE }}:latest
-          docker push ${{ env.GCP_IMAGE_BASE }}:${{ github.sha }}
+          docker push ${{ env.GCP_PATH }}:latest
+          docker push ${{ env.GCP_PATH }}:${{ github.sha }}
 
+      # Push to Docker Hub
       - name: Push to Docker Hub
         run: |
-          docker push ${{ env.DOCKER_IMAGE_BASE }}:latest
+          docker push ${{ env.DOCKERHUB_REPO }}:latest
