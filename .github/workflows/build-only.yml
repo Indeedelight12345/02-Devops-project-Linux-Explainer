@@ -9,52 +9,48 @@ jobs:
   build-scan-push:
     runs-on: ubuntu-latest
     env:
-      GCP_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repository/my-app: latest
-      DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/linuxapp-explainer: latest 
+      
+      GCP_IMAGE_BASE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repository/my-app
+      DOCKER_IMAGE_BASE: ${{ secrets.DOCKERHUB_USERNAME }}/linuxapp-explainer
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-     
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-     
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3 # Updated to v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-     
       - name: Configure GCP Docker
         run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
       - name: Build Docker image
         run: |
-          docker build -t $GCP_IMAGE -t $DOCKERHUB_IMAGE .
+          # Build with both tags locally
+          docker build -t ${{ env.GCP_IMAGE_BASE }}:latest \
+                       -t ${{ env.DOCKER_IMAGE_BASE }}:latest \
+                       -t ${{ env.GCP_IMAGE_BASE }}:${{ github.sha }} .
 
-     
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.GCP_IMAGE }}
+          image-ref: '${{ env.GCP_IMAGE_BASE }}:latest'
           format: 'table'
-          exit-code: '1'
+          exit-code: '1' # This stops the pipeline if vulnerabilities are found
           severity: 'CRITICAL,HIGH'
 
-    
-      - name: Push to GCP
+      - name: Push to Artifact Registry (GCP)
         run: |
-          docker push $GCP_IMAGE
-          docker tag $GCP_IMAGE us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repository/my-app:latest
-          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repository/my-app:latest
+          docker push ${{ env.GCP_IMAGE_BASE }}:latest
+          docker push ${{ env.GCP_IMAGE_BASE }}:${{ github.sha }}
 
       - name: Push to Docker Hub
         run: |
-          docker push $DOCKERHUB_IMAGE
-          docker tag $DOCKERHUB_IMAGE ${{ secrets.DOCKERHUB_USERNAME }}/linuxapp-explainer:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/linuxapp-explainer:latest
+          docker push ${{ env.DOCKER_IMAGE_BASE }}:latest
