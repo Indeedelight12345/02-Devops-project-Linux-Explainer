@@ -11,7 +11,7 @@ jobs:
     env:
       
       GCP_IMAGE_BASE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repository/my-app
-      DOCKER_IMAGE_BASE: ${{ secrets.DOCKERHUB_USERNAME }}/linuxapp-explainer
+      DOCKER_IMAGE_BASE: ${{ secrets.DOCKER_USERNAME }}/linuxapp-explainer
 
     steps:
       - name: Checkout repository
