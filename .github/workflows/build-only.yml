@@ -44,7 +44,7 @@ jobs:
           image-ref: '${{ env.GCP_IMAGE_BASE }}:latest'
           format: 'table'
           exit-code: '1'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL,MEDIUM'
 
       - name: Push to Artifact Registry (GCP)
         run: |
