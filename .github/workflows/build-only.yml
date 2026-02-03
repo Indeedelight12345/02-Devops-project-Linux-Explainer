@@ -9,7 +9,7 @@ jobs:
   build-scan-push:
     runs-on: ubuntu-latest
     env:
-      GCP_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repository/my-app: v1.0.0
+      GCP_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repository/my-app: latest
       DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/linuxapp-explainer: latest 
 
     steps:
