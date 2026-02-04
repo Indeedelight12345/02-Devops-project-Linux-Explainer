@@ -1,7 +1,6 @@
-# Start from Ubuntu (easier for gcloud SDK)
 FROM ubuntu:22.04
 
-# Install dependencies
+# Install basic dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     bash \
@@ -13,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     lsb-release \
     sudo \
+    apt-transport-https \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Terraform
@@ -21,16 +22,15 @@ RUN wget https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_am
     && mv terraform /usr/local/bin/ \
     && rm terraform_1.5.7_linux_amd64.zip
 
-# Install Google Cloud SDK
-RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" \
-        | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list \
-    && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - \
+# Install Google Cloud SDK (modern way)
+RUN apt-get update && apt-get install -y apt-transport-https ca-certificates gnupg curl lsb-release \
+    && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+       | tee /etc/apt/sources.list.d/google-cloud-sdk.list \
     && apt-get update && apt-get install -y google-cloud-sdk
 
 # Optional: kubectl & helm
 
 
 WORKDIR /workspace
-
-# Start bash
-ENTRYPOINT ["/bin/bash"]
+CMD ["bash"]
