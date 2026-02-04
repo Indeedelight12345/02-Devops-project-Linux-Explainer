@@ -21,7 +21,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Login to Google Cloud
+      
+
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
