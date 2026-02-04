@@ -1,0 +1,40 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app
+          image: us-central1-docker.pkg.dev/ubioworo-project/my-repository/my-app:latest
+          ports:
+            - containerPort: 3000
+          env:
+            
+            - name: VITE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-api-key
+                  key: VITE_API_KEY
+            
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: my-app-config
+                  key: APP_ENV
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: my-app-config
+                  key: LOG_LEVEL
