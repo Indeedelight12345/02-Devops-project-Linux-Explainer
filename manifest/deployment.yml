@@ -28,13 +28,4 @@ spec:
                   name: my-app-api-key
                   key: VITE_API_KEY
             
-            - name: APP_ENV
-              valueFrom:
-                configMapKeyRef:
-                  name: my-app-config
-                  key: APP_ENV
-            - name: LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  name: my-app-config
-                  key: LOG_LEVEL
+            
