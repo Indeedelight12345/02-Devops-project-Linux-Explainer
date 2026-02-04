@@ -5,10 +5,13 @@ on:
     branches:
       - main
 
+env:
+  # This sets the secret for GitHub Actions runner
+  VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+
 jobs:
   build-scan-push:
     runs-on: ubuntu-latest
-    
 
     env:
       GCP_REGISTRY: us-central1-docker.pkg.dev
@@ -20,8 +23,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      
 
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
@@ -39,20 +40,20 @@ jobs:
       - name: Configure GCP Docker
         run: gcloud auth configure-docker ${{ env.GCP_REGISTRY }} --quiet
 
-      # Build the image once and tag it for both registries
+      # Build the Docker image with build-arg for VITE_API_KEY
       - name: Build Docker image
         run: |
-          # Construct the full GCP path
           GCP_FULL_PATH="${{ env.GCP_REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_REPO }}/${{ env.IMAGE_NAME }}"
-          
+
           echo "Building for GCP: $GCP_FULL_PATH"
           echo "Building for DockerHub: ${{ env.DOCKERHUB_REPO }}"
 
-          docker build -t "$GCP_FULL_PATH:latest" \
-                       -t "$GCP_FULL_PATH:${{ github.sha }}" \
-                       -t "${{ env.DOCKERHUB_REPO }}:latest" .
-          
-          # Save the path for following steps
+          docker build \
+            --build-arg VITE_API_KEY="${{ secrets.VITE_API_KEY }}" \
+            -t "$GCP_FULL_PATH:latest" \
+            -t "$GCP_FULL_PATH:${{ github.sha }}" \
+            -t "${{ env.DOCKERHUB_REPO }}:latest" .
+
           echo "GCP_PATH=$GCP_FULL_PATH" >> $GITHUB_ENV
 
       # Security Scan
